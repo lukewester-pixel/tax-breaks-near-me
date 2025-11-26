@@ -89,7 +89,7 @@
 <body>
   <h1>Tax Breaks Near Me</h1>
   <div class="sub">
-    Drop in your ZIP code and we’ll use real data to surface three tax write-off ideas tied to nonprofits in your area.
+    Drop in your ZIP code (CA Only) and we’ll use real data to surface three tax write-off ideas tied to nonprofits in your area.
   </div>
 
   <div class="card">
@@ -136,63 +136,21 @@
           return;
         }
 
-        const { city, state, psychographics, census, recommendations, nonprofit_count } = data;
+        // Expect backend to send:
+        // zip, city, state, area_label, census, psychographics, recommendations, nonprofit_count
+        const {
+          zip: z,
+          city,
+          state,
+          area_label,
+          psychographics,
+          census,
+          recommendations,
+          nonprofit_count
+        } = data;
 
-        // Profile card
-        const tagsHtml = (psychographics || []).map(
-          t => `<span class="tag-pill">${t}</span>`
-        ).join('');
-
-        const censusHtml = `
-          <div class="small">
-            Median income: ${census.median_household_income ?? 'n/a'}<br>
-            Population: ${census.population ?? 'n/a'}<br>
-            Owner/renter mix: ${
-              census.owner_ratio != null
-                ? `${Math.round(census.owner_ratio * 100)}% owner / ${100 - Math.round(census.owner_ratio * 100)}% renter`
-                : 'n/a'
-            }<br>
-            Poverty rate: ${
-              census.poverty_rate != null
-                ? (census.poverty_rate * 100).toFixed(1) + '%'
-                : 'n/a'
-            }
-          </div>
-        `;
-
-        resultsDiv.innerHTML += `
-          <div class="card">
-            <h2>What we see about ${zip}</h2>
-            <div class="small">
-              Area: ${city || 'Unknown city'}, ${state || ''}<br>
-              IRS-listed nonprofits in this ZIP: ${nonprofit_count}
-            </div>
-            <div style="margin-top: 0.5rem;">${tagsHtml || '<span class="small">No tags detected</span>'}</div>
-            <div style="margin-top: 0.5rem;">${censusHtml}</div>
-          </div>
-        `;
-
-        // Recommendations
-        const recs = recommendations || [];
-        if (recs.length > 0) {
-          recs.forEach((rec, idx) => {
-            resultsDiv.innerHTML += `
-              <div class="card recs">
-                <h3>${idx + 1}. ${rec.title}</h3>
-                <p>${rec.description}</p>
-                <p class="small"><strong>Tax angle:</strong> ${rec.tax_angle}</p>
-                <p class="muted">Not tax advice. Talk to a tax pro about your specific situation.</p>
-              </div>
-            `;
-          });
-        } else {
-          resultsDiv.innerHTML += `
-            <div class="card">
-              <h3>No recommendations generated</h3>
-              <p class="small">We couldn’t build good suggestions for this ZIP. Try another one nearby.</p>
-            </div>
-          `;
-        }
+        renderProfile(z, city, state, area_label, psychographics, census, nonprofit_count);
+        renderRecommendations(recommendations || []);
 
       } catch (err) {
         console.error(err);
@@ -201,6 +159,106 @@
         goBtn.disabled = false;
         goBtn.textContent = 'Show my tax breaks';
       }
+    }
+
+    function renderProfile(zip, city, state, areaLabel, psychographics, census, nonprofitCount) {
+      const censusData = census || {};
+      const tags = psychographics || [];
+
+      // Use area_label first, fall back to city/state if needed
+      const area = areaLabel
+        || (city && state ? `${city}, ${state}` : (city || 'Unknown area'));
+
+      const medianIncome = censusData.median_household_income;
+      const population = censusData.population;
+      const ownerRatio = censusData.owner_ratio;
+      const povertyRate = censusData.poverty_rate;
+
+      const formatIncome = (val) => {
+        if (
+          val === null ||
+          val === undefined ||
+          val <= 0 ||
+          val === -666666666
+        ) {
+          return 'n/a';
+        }
+        return `$${Number(val).toLocaleString()}`;
+      };
+
+      const formatPercent = (val) => {
+        if (val === null || val === undefined || val < 0) {
+          return 'n/a';
+        }
+        return `${(val * 100).toFixed(1)}%`;
+      };
+
+      const formatOwnerRenter = (ratio) => {
+        if (ratio === null || ratio === undefined || ratio < 0) {
+          return 'n/a';
+        }
+        const ownerPct = Math.round(ratio * 100);
+        const renterPct = 100 - ownerPct;
+        return `${ownerPct}% owner / ${renterPct}% renter`;
+      };
+
+      const humanizeTag = (tag) => {
+        // Basic cleanup: "lower_income" -> "Lower income"
+        const label = String(tag)
+          .replace(/_/g, ' ')
+          .trim();
+        return label.charAt(0).toUpperCase() + label.slice(1);
+      };
+
+      const tagsHtml = tags.length
+        ? tags.map(t => `<span class="tag-pill">${humanizeTag(t)}</span>`).join('')
+        : '<span class="small">No tags detected</span>';
+
+      const censusHtml = `
+        <div class="small">
+          Median income: ${formatIncome(medianIncome)}<br>
+          Population: ${population != null ? Number(population).toLocaleString() : 'n/a'}<br>
+          Owner/renter mix: ${formatOwnerRenter(ownerRatio)}<br>
+          Poverty rate: ${formatPercent(povertyRate)}
+        </div>
+      `;
+
+      resultsDiv.innerHTML += `
+        <div class="card">
+          <h2>What we see about ${zip}</h2>
+          <div class="small">
+            Area: ${area}<br>
+            IRS-listed nonprofits in this ZIP: ${nonprofitCount ?? 'n/a'}
+          </div>
+          <div style="margin-top: 0.5rem;">${tagsHtml}</div>
+          <div style="margin-top: 0.5rem;">${censusHtml}</div>
+        </div>
+      `;
+    }
+
+    function renderRecommendations(recs) {
+      const list = recs || [];
+
+      if (!list.length) {
+        resultsDiv.innerHTML += `
+          <div class="card">
+            <h3>No recommendations generated</h3>
+            <p class="small">We couldn’t build good suggestions for this ZIP. Try another one nearby.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.forEach((rec, idx) => {
+        resultsDiv.innerHTML += `
+          <div class="card recs">
+            <h3>${idx + 1}. ${rec.title}</h3>
+            <p>${rec.description}</p>
+            <p class="small"><strong>Tax angle:</strong> ${rec.tax_angle}</p>
+            <p class="muted">Not tax advice. Talk to a tax pro about your specific situation.</p>
+          </div>
+        `;
+      });
     }
 
     goBtn.addEventListener('click', fetchTaxBreaks);
