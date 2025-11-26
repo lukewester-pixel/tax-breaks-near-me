@@ -5,60 +5,201 @@
   <title>Tax Breaks Near Me</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
+    :root {
+      --bg: #f5f5f7;
+      --card-bg: #ffffff;
+      --primary: #111827;
+      --accent: #2563eb;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --border-subtle: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      max-width: 900px;
-      margin: 2rem auto;
-      padding: 0 1rem 3rem;
-      background: #f7f7f7;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text-main);
     }
-    h1 {
-      margin-bottom: 0.25rem;
+
+    .page {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
     }
-    .sub {
-      color: #555;
-      margin-bottom: 1.5rem;
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: 1.5rem;
+      align-items: center;
+      margin-bottom: 2rem;
     }
-    .card {
-      background: #fff;
-      border-radius: 10px;
-      padding: 1rem 1.25rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+
+    @media (max-width: 768px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
     }
+
+    .hero-text h1 {
+      font-size: clamp(1.9rem, 3vw, 2.4rem);
+      margin: 0 0 0.5rem;
+    }
+
+    .hero-text p {
+      margin: 0 0 0.75rem;
+      color: var(--text-muted);
+      font-size: 0.98rem;
+    }
+
+    .hero-highlight {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #e0ecff;
+      color: #1d4ed8;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .hero-benefits {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 1rem;
+      margin: 0.75rem 0 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .hero-benefits span::before {
+      content: "• ";
+      color: var(--accent);
+    }
+
+    .hero-card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 1rem 1.25rem 1.1rem;
+      box-shadow: 0 8px 26px rgba(15, 23, 42, 0.08);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .hero-card-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.6rem;
+    }
+
     .zip-form {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
-      margin-bottom: 1rem;
+      margin-bottom: 0.6rem;
     }
+
     input[type="text"] {
       padding: 0.6rem 0.75rem;
       font-size: 1rem;
       border-radius: 8px;
-      border: 1px solid #ccc;
+      border: 1px solid #d1d5db;
       flex: 1;
       min-width: 140px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(37,99,235,0.2);
+    }
+
     button {
-      padding: 0.6rem 1rem;
-      font-size: 1rem;
+      padding: 0.6rem 1.1rem;
+      font-size: 0.95rem;
       border-radius: 8px;
       border: none;
       cursor: pointer;
-      background: #111827;
+      background: var(--primary);
       color: #fff;
       white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
     }
+
+    button span.icon {
+      font-size: 1.1rem;
+    }
+
     button:disabled {
       opacity: 0.6;
       cursor: default;
     }
+
     #error {
       color: #b00020;
-      margin-bottom: 1rem;
+      margin-bottom: 0.3rem;
       min-height: 1em;
+      font-size: 0.85rem;
     }
+
+    .helper-text {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .helper-text strong {
+      font-weight: 600;
+    }
+
+    .hero-image {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      background: linear-gradient(130deg, #eef2ff, #f9fafb);
+      min-height: 200px;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+    }
+
+    .hero-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .section-header {
+      margin-top: 0;
+      margin-bottom: 0.4rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .section-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+      border: 1px solid var(--border-subtle);
+    }
+
     .tag-pill {
       display: inline-block;
       padding: 0.2rem 0.55rem;
@@ -68,43 +209,127 @@
       font-size: 0.8rem;
       color: #333;
     }
+
     .small {
       font-size: 0.85rem;
       color: #555;
     }
+
     h2, h3 {
       margin-top: 0;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.4rem;
     }
+
     .muted {
       color: #777;
       font-size: 0.8rem;
       margin-top: 0.5rem;
     }
+
     .recs h3 {
       margin-bottom: 0.25rem;
+    }
+
+    .layout-bottom {
+      margin-top: 1.5rem;
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 900px) {
+      .layout-bottom {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .how-it-works {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+    }
+
+    .how-it-works ol {
+      margin: 0.5rem 0 0;
+      padding-left: 1.1rem;
+    }
+
+    .how-it-works li {
+      margin-bottom: 0.35rem;
     }
   </style>
 </head>
 <body>
-  <h1>Tax Breaks Near Me</h1>
-  <div class="sub">
-    Drop in your ZIP code (CA Only) and we’ll use real data to surface three tax write-off ideas tied to nonprofits in your area.
-  </div>
+  <div class="page">
+    <header class="hero">
+      <div class="hero-text">
+        <div class="hero-highlight">
+          <span>🧾 Smarter giving, better write-offs</span>
+        </div>
+        <h1>Turn your ZIP code into tax write-off ideas.</h1>
+        <p>
+          Drop in a California ZIP and we’ll use Census data and IRS nonprofit records
+          to surface three donation ideas that actually match your area.
+        </p>
+        <div class="hero-benefits">
+          <span>See local nonprofit opportunities</span>
+          <span>Get a quick read on your area</span>
+          <span>Use it as a starting point for tax planning</span>
+        </div>
 
-  <div class="card">
-    <div class="zip-form">
-      <input id="zip-input" type="text" placeholder="Enter 5-digit ZIP (e.g. 92008)" />
-      <button id="go-btn">Show my tax breaks</button>
-    </div>
-    <div id="error"></div>
-    <div class="small muted">
-      We’ll use public data (Census + IRS nonprofit data) to build a quick profile of your area and suggest potential charitable deductions.
-      This is general info, not tax advice.
-    </div>
-  </div>
+        <div class="hero-card">
+          <div class="hero-card-title">Try it in less than 10 seconds</div>
+          <div class="zip-form">
+            <input id="zip-input" type="text" placeholder="Enter 5-digit ZIP (CA only, e.g. 92008)" />
+            <button id="go-btn">
+              <span class="icon">🚀</span>
+              <span>Show my tax breaks</span>
+            </button>
+          </div>
+          <div id="error"></div>
+          <div class="helper-text">
+            We pull from <strong>U.S. Census</strong> data and the
+            <strong>IRS Exempt Organizations</strong> list. This is general information,
+            not personalized tax advice.
+          </div>
+        </div>
+      </div>
 
-  <div id="results"></div>
+      <div class="hero-image">
+        <!-- Simple hero image – swap the URL if you want a different vibe -->
+        <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80"
+             alt="People collaborating with laptops and notes">
+      </div>
+    </header>
+
+    <main class="layout-bottom">
+      <section style="min-width: 0;">
+        <h2 class="section-header">Your area snapshot & ideas</h2>
+        <p class="section-sub">
+          After you enter a ZIP, you’ll see a quick profile of the neighborhood plus three
+          donation ideas tied to real nonprofits near you.
+        </p>
+        <div id="results"></div>
+      </section>
+
+      <aside>
+        <div class="card">
+          <h3>How this tool works</h3>
+          <div class="how-it-works">
+            <ol>
+              <li><strong>We look up your area</strong> using Census ACS 5-year estimates.</li>
+              <li><strong>We pull IRS-listed nonprofits</strong> in that exact ZIP.</li>
+              <li><strong>We tag the neighborhood</strong> (income, renters vs. owners, poverty, etc.).</li>
+              <li><strong>We generate three giving ideas</strong> tied to nonprofits near you.</li>
+            </ol>
+            <p style="margin-top: 0.6rem;">
+              Use this as a conversation starter with your tax pro or financial planner —
+              not a replacement for professional advice.
+            </p>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
 
   <script>
     const zipInput = document.getElementById('zip-input');
@@ -203,7 +428,6 @@
       };
 
       const humanizeTag = (tag) => {
-        // Basic cleanup: "lower_income" -> "Lower income"
         const label = String(tag)
           .replace(/_/g, ' ')
           .trim();
