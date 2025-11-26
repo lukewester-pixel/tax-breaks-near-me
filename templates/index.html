@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tax Breaks Near Me</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem 3rem;
+      background: #f7f7f7;
+    }
+    h1 {
+      margin-bottom: 0.25rem;
+    }
+    .sub {
+      color: #555;
+      margin-bottom: 1.5rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+    }
+    .zip-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    input[type="text"] {
+      padding: 0.6rem 0.75rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      flex: 1;
+      min-width: 140px;
+    }
+    button {
+      padding: 0.6rem 1rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: #111827;
+      color: #fff;
+      white-space: nowrap;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    #error {
+      color: #b00020;
+      margin-bottom: 1rem;
+      min-height: 1em;
+    }
+    .tag-pill {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      margin: 0.1rem;
+      border-radius: 999px;
+      background: #eef0ff;
+      font-size: 0.8rem;
+      color: #333;
+    }
+    .small {
+      font-size: 0.85rem;
+      color: #555;
+    }
+    h2, h3 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+    }
+    .muted {
+      color: #777;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    .recs h3 {
+      margin-bottom: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tax Breaks Near Me</h1>
+  <div class="sub">
+    Drop in your ZIP code and we’ll use real data to surface three tax write-off ideas tied to nonprofits in your area.
+  </div>
+
+  <div class="card">
+    <div class="zip-form">
+      <input id="zip-input" type="text" placeholder="Enter 5-digit ZIP (e.g. 92008)" />
+      <button id="go-btn">Show my tax breaks</button>
+    </div>
+    <div id="error"></div>
+    <div class="small muted">
+      We’ll use public data (Census + IRS nonprofit data) to build a quick profile of your area and suggest potential charitable deductions.
+      This is general info, not tax advice.
+    </div>
+  </div>
+
+  <div id="results"></div>
+
+  <script>
+    const zipInput = document.getElementById('zip-input');
+    const goBtn = document.getElementById('go-btn');
+    const errorDiv = document.getElementById('error');
+    const resultsDiv = document.getElementById('results');
+
+    async function fetchTaxBreaks() {
+      const zip = zipInput.value.trim();
+      errorDiv.textContent = '';
+      resultsDiv.innerHTML = '';
+
+      if (!/^[0-9]{5}$/.test(zip)) {
+        errorDiv.textContent = 'Please enter a valid 5-digit ZIP code.';
+        return;
+      }
+
+      goBtn.disabled = true;
+      goBtn.textContent = 'Loading...';
+
+      try {
+        const res = await fetch(`/api/tax-breaks?zip=${encodeURIComponent(zip)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorDiv.textContent = data.error || 'Something went wrong.';
+          goBtn.disabled = false;
+          goBtn.textContent = 'Show my tax breaks';
+          return;
+        }
+
+        const { city, state, psychographics, census, recommendations, nonprofit_count } = data;
+
+        // Profile card
+        const tagsHtml = (psychographics || []).map(
+          t => `<span class="tag-pill">${t}</span>`
+        ).join('');
+
+        const censusHtml = `
+          <div class="small">
+            Median income: ${census.median_household_income ?? 'n/a'}<br>
+            Population: ${census.population ?? 'n/a'}<br>
+            Owner/renter mix: ${
+              census.owner_ratio != null
+                ? `${Math.round(census.owner_ratio * 100)}% owner / ${100 - Math.round(census.owner_ratio * 100)}% renter`
+                : 'n/a'
+            }<br>
+            Poverty rate: ${
+              census.poverty_rate != null
+                ? (census.poverty_rate * 100).toFixed(1) + '%'
+                : 'n/a'
+            }
+          </div>
+        `;
+
+        resultsDiv.innerHTML += `
+          <div class="card">
+            <h2>What we see about ${zip}</h2>
+            <div class="small">
+              Area: ${city || 'Unknown city'}, ${state || ''}<br>
+              IRS-listed nonprofits in this ZIP: ${nonprofit_count}
+            </div>
+            <div style="margin-top: 0.5rem;">${tagsHtml || '<span class="small">No tags detected</span>'}</div>
+            <div style="margin-top: 0.5rem;">${censusHtml}</div>
+          </div>
+        `;
+
+        // Recommendations
+        const recs = recommendations || [];
+        if (recs.length > 0) {
+          recs.forEach((rec, idx) => {
+            resultsDiv.innerHTML += `
+              <div class="card recs">
+                <h3>${idx + 1}. ${rec.title}</h3>
+                <p>${rec.description}</p>
+                <p class="small"><strong>Tax angle:</strong> ${rec.tax_angle}</p>
+                <p class="muted">Not tax advice. Talk to a tax pro about your specific situation.</p>
+              </div>
+            `;
+          });
+        } else {
+          resultsDiv.innerHTML += `
+            <div class="card">
+              <h3>No recommendations generated</h3>
+              <p class="small">We couldn’t build good suggestions for this ZIP. Try another one nearby.</p>
+            </div>
+          `;
+        }
+
+      } catch (err) {
+        console.error(err);
+        errorDiv.textContent = 'Error contacting the server.';
+      } finally {
+        goBtn.disabled = false;
+        goBtn.textContent = 'Show my tax breaks';
+      }
+    }
+
+    goBtn.addEventListener('click', fetchTaxBreaks);
+    zipInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        fetchTaxBreaks();
+      }
+    });
+  </script>
+</body>
+</html>
