@@ -185,19 +185,28 @@
       const povertyRate = censusData.poverty_rate;
 
       const formatIncome = (val) => {
-        if (!val || val < 0 || val === -666666666) return 'n/a';
-        return `$${Number(val).toLocaleString()}`;
+        if (val === null || val === undefined || val === -666666666) {
+          return 'n/a';
+        }
+        const num = Number(val);
+        if (Number.isNaN(num) || num <= 0) return 'n/a';
+        return `$${num.toLocaleString()}`;
       };
 
       const formatPercent = (val) => {
-        if (val == null || val < 0) return 'n/a';
-        return `${(val * 100).toFixed(1)}%`;
+        if (val === null || val === undefined) return 'n/a';
+        const num = Number(val);
+        if (Number.isNaN(num) || num < 0) return 'n/a';
+        return `${(num * 100).toFixed(1)}%`;
       };
 
       const formatOwnerRenter = (ratio) => {
-        if (ratio == null || ratio < 0) return 'n/a';
-        const ownerPct = Math.round(ratio * 100);
-        return `${ownerPct}% owner / ${100 - ownerPct}% renter`;
+        if (ratio === null || ratio === undefined) return 'n/a';
+        const num = Number(ratio);
+        if (Number.isNaN(num) || num < 0) return 'n/a';
+        const ownerPct = Math.round(num * 100);
+        const renterPct = 100 - ownerPct;
+        return `${ownerPct}% owner / ${renterPct}% renter`;
       };
 
       const humanizeTag = (tag) => {
@@ -209,7 +218,6 @@
         ? tags.map(t => `<span class="tag-pill">${humanizeTag(t)}</span>`).join('')
         : '<span class="small">No tags detected</span>';
 
-      // Embedded map
       const mapEmbed = `
         <div class="map-wrapper">
           <iframe
@@ -245,6 +253,27 @@
       `;
     }
 
+    function extractNonprofitName(rec) {
+      // 1) Prefer explicit fields if backend provides them
+      if (rec.nonprofit_name) return String(rec.nonprofit_name).trim();
+      if (rec.nonprofit) return String(rec.nonprofit).trim();
+      if (rec.org) return String(rec.org).trim();
+
+      // 2) Try to extract from bold text in description, e.g. **Mission Animal Rescue**
+      if (rec.description) {
+        const boldMatch = /\*\*(.+?)\*\*/.exec(rec.description);
+        if (boldMatch && boldMatch[1]) {
+          return boldMatch[1].trim();
+        }
+      }
+
+      // 3) Fallback: use the title
+      if (rec.title) return String(rec.title).trim();
+
+      // 4) Last resort
+      return "Nonprofit";
+    }
+
     function renderRecommendations(recs, zip) {
       if (!recs.length) {
         resultsDiv.innerHTML += `
@@ -257,16 +286,10 @@
       }
 
       recs.forEach((rec, idx) => {
-        // Extract nonprofit name
-        const nonprofitName =
-          rec.nonprofit_name ||
-          rec.nonprofit ||
-          rec.org ||
-          (rec.title ? rec.title.split(" – ")[0] : "") ||
-          "Nonprofit";
+        const nonprofitName = extractNonprofitName(rec);
 
-        // Google search link
-        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(nonprofitName + " " + zip)}`;
+        const searchQuery = `${nonprofitName} ${zip}`;
+        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
 
         resultsDiv.innerHTML += `
           <div class="card recs">

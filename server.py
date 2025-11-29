@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()  # Load .env variables like CENSUS_API_KEY before anything else
+
 from flask import Flask, request, jsonify, render_template
 from logic.recommendations import generate_tax_breaks
 
@@ -23,7 +26,7 @@ def api_tax_breaks():
     try:
         result = generate_tax_breaks(zip_code)
     except Exception as e:
-        # For debugging logs on Render
+        # For debugging logs on Render or locally
         print("Error in generate_tax_breaks:", e)
         return jsonify({"error": "Server error while generating recommendations"}), 500
 
@@ -38,7 +41,6 @@ def api_tax_breaks():
         "census": profile["census"],
         "recommendations": result["recommendations"],
         "nonprofit_count": len(profile["nonprofits"]),
-        # 🔥 send the actual nonprofit list to the frontend
         "nonprofits": profile["nonprofits"],
     })
 
