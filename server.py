@@ -17,20 +17,23 @@ def home():
 def api_tax_breaks():
     zip_code = request.args.get("zip", "").strip()
 
-    if not zip_code:
-        return jsonify({"error": "Missing 'zip' query parameter"}), 400
-
-    if not zip_code.isdigit() or len(zip_code) != 5:
-        return jsonify({"error": "ZIP must be a 5-digit number"}), 400
+    # Any missing / non-numeric / wrong length ZIP → same error
+    if not zip_code or not zip_code.isdigit() or len(zip_code) != 5:
+        return jsonify({"error": "Enter a valid California ZIP."}), 400
 
     try:
+        # This will call learn_zip -> get_census_by_zip, etc.
         result = generate_tax_breaks(zip_code)
     except Exception as e:
-        # For debugging logs on Render or locally
+        # If anything blows up while building the profile, treat it as invalid ZIP
         print("Error in generate_tax_breaks:", e)
-        return jsonify({"error": "Server error while generating recommendations"}), 500
+        return jsonify({"error": "Enter a valid California ZIP."}), 400
 
-    profile = result["profile"]
+    profile = result.get("profile", {})
+
+    # If Census came back empty for this ZIP, treat it as not a valid CA ZIP
+    if not profile.get("census"):
+        return jsonify({"error": "Enter a valid California ZIP."}), 400
 
     return jsonify({
         "zip": result["zip"],
