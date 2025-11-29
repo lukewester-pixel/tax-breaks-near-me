@@ -33,10 +33,13 @@ def api_tax_breaks():
         "zip": result["zip"],
         "city": profile["city"],
         "state": profile["state"],
+        "area_label": profile.get("area_label"),
         "psychographics": profile["psychographics"],
         "census": profile["census"],
         "recommendations": result["recommendations"],
         "nonprofit_count": len(profile["nonprofits"]),
+        # 🔥 send the actual nonprofit list to the frontend
+        "nonprofits": profile["nonprofits"],
     })
 
 
@@ -45,4 +48,3 @@ if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
