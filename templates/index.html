@@ -84,13 +84,16 @@
     .recs h3 {
       margin-bottom: 0.25rem;
     }
-    a.map-link {
-      color: #2563eb;
-      text-decoration: none;
-      font-size: 0.85rem;
+    .map-wrapper {
+      margin-top: 0.6rem;
+      border-radius: 8px;
+      overflow: hidden;
     }
-    a.map-link:hover {
-      text-decoration: underline;
+    .map-frame {
+      width: 100%;
+      height: 250px;
+      border: 0;
+      display: block;
     }
   </style>
 </head>
@@ -191,7 +194,7 @@
       };
 
       const humanizeTag = (tag) => {
-        const label = tag.replace(/_/g, ' ');
+        const label = String(tag).replace(/_/g, ' ').trim();
         return label.charAt(0).toUpperCase() + label.slice(1);
       };
 
@@ -199,8 +202,18 @@
         ? tags.map(t => `<span class="tag-pill">${humanizeTag(t)}</span>`).join('')
         : '<span class="small">No tags detected</span>';
 
-      // ⭐ NEW: Google Maps link
-      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(zip)}`;
+      // ⭐ Embedded Google Map using the ZIP (no API key)
+      const mapEmbed = `
+        <div class="map-wrapper">
+          <iframe
+            class="map-frame"
+            src="https://www.google.com/maps?q=${encodeURIComponent(zip)}&output=embed"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            allowfullscreen>
+          </iframe>
+        </div>
+      `;
 
       const censusHtml = `
         <div class="small">
@@ -216,9 +229,9 @@
           <h2>What we see about ${zip}</h2>
           <div class="small">
             Area: ${area || 'Unknown area'}<br>
-            IRS-listed nonprofits in this ZIP: ${nonprofitCount ?? 'n/a'}<br>
-            <a class="map-link" href="${mapsUrl}" target="_blank">View this ZIP on Google Maps</a>
+            IRS-listed nonprofits in this ZIP: ${nonprofitCount ?? 'n/a'}
           </div>
+          ${mapEmbed}
           <div style="margin-top: 0.5rem;">${tagsHtml}</div>
           <div style="margin-top: 0.5rem;">${censusHtml}</div>
         </div>
