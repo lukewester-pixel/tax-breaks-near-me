@@ -95,6 +95,34 @@
       border: 0;
       display: block;
     }
+    .nonprofit-list {
+      margin-top: 0.75rem;
+    }
+    .nonprofit-list h3 {
+      font-size: 0.95rem;
+      margin-bottom: 0.35rem;
+    }
+    .nonprofit-list ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+    }
+    .nonprofit-list li {
+      font-size: 0.85rem;
+      margin-bottom: 0.25rem;
+    }
+    .nonprofit-link {
+      color: #2563eb;
+      text-decoration: none;
+    }
+    .nonprofit-link:hover {
+      text-decoration: underline;
+    }
+    .nonprofit-meta {
+      color: #777;
+      font-size: 0.75rem;
+      margin-left: 0.15rem;
+    }
   </style>
 </head>
 <body>
@@ -153,10 +181,11 @@
           psychographics,
           census,
           recommendations,
-          nonprofit_count
+          nonprofit_count,
+          nonprofits
         } = data;
 
-        renderProfile(z, area_label, psychographics, census, nonprofit_count);
+        renderProfile(z, area_label, psychographics, census, nonprofit_count, nonprofits || []);
         renderRecommendations(recommendations || []);
 
       } catch (err) {
@@ -168,7 +197,7 @@
       }
     }
 
-    function renderProfile(zip, area, psychographics, census, nonprofitCount) {
+    function renderProfile(zip, area, psychographics, census, nonprofitCount, nonprofits) {
       const censusData = census || {};
       const tags = psychographics || [];
 
@@ -202,7 +231,7 @@
         ? tags.map(t => `<span class="tag-pill">${humanizeTag(t)}</span>`).join('')
         : '<span class="small">No tags detected</span>';
 
-      // ⭐ Embedded Google Map using the ZIP (no API key)
+      // Embedded Google Map using the ZIP (no API key)
       const mapEmbed = `
         <div class="map-wrapper">
           <iframe
@@ -214,6 +243,50 @@
           </iframe>
         </div>
       `;
+
+      // Build nonprofit list (limit to first 10 to avoid crazy long lists)
+      const maxNonprofitsToShow = 10;
+      const nonprofitsToShow = (nonprofits || []).slice(0, maxNonprofitsToShow);
+
+      let nonprofitsHtml = '';
+      if (nonprofitsToShow.length) {
+        const items = nonprofitsToShow.map((n) => {
+          const name = (n.name || 'Unnamed nonprofit').trim();
+          const city = (n.city || '').trim();
+          const state = (n.state || '').trim();
+          const locationMeta = city || state ? ` (${[city, state].filter(Boolean).join(', ')})` : '';
+          const query = encodeURIComponent(`${name} ${zip}`);
+          const url = `https://www.google.com/search?q=${query}`;
+          return `
+            <li>
+              <a class="nonprofit-link" href="${url}" target="_blank" rel="noopener noreferrer">
+                ${name}
+              </a>
+              <span class="nonprofit-meta">${locationMeta}</span>
+            </li>
+          `;
+        }).join('');
+
+        nonprofitsHtml = `
+          <div class="nonprofit-list">
+            <h3>Nonprofits in this ZIP</h3>
+            <ul>
+              ${items}
+            </ul>
+            ${nonprofits.length > maxNonprofitsToShow
+              ? `<div class="small" style="margin-top:0.25rem;">Showing ${maxNonprofitsToShow} of ${nonprofits.length} nonprofits.</div>`
+              : ''
+            }
+          </div>
+        `;
+      } else {
+        nonprofitsHtml = `
+          <div class="nonprofit-list">
+            <h3>Nonprofits in this ZIP</h3>
+            <p class="small">We didn’t find any nonprofits for this ZIP in the current dataset.</p>
+          </div>
+        `;
+      }
 
       const censusHtml = `
         <div class="small">
@@ -232,6 +305,7 @@
             IRS-listed nonprofits in this ZIP: ${nonprofitCount ?? 'n/a'}
           </div>
           ${mapEmbed}
+          ${nonprofitsHtml}
           <div style="margin-top: 0.5rem;">${tagsHtml}</div>
           <div style="margin-top: 0.5rem;">${censusHtml}</div>
         </div>
